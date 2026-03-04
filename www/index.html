@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>올해의 동물</title>
+    <script src="./lib/tailwindcss.js"></script>
+    <script src="./lib/lucide.min.js"></script>
+
+    <style>
+        
+        body {
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: contain;
+        }
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4 font-sans text-slate-900">
+
+    <div class="max-w-md w-full bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100 mb-8">
+        <div class="bg-indigo-600 py-2 px-8 text-white text-center">
+            <div id="calendar-icon" data-lucide="calendar" class="mb-4 opacity-80 mx-auto w-12 h-12"></div>
+            <h1 class="text-2xl font-bold">올해의 동물</h1>
+            <p class="text-indigo-100 mt-2 opacity-90 text-sm">연도를 입력하여 상징 동물을 확인하세요</p>
+        </div>
+
+        <div class="p-8">
+            <div class="relative mb-8">
+                <label class="block text-sm font-semibold text-slate-600 mb-2 ml-1">서기 연도 입력</label>
+                <div class="relative">
+                    <input
+                        type="number"
+                        id="yearInput"
+                        class="w-full bg-slate-100 border-none rounded-2xl py-4 px-6 text-xl font-medium focus:ring-2 focus:ring-indigo-500 transition-all outline-none"
+                        placeholder="예: 2026"
+                        inputmode="numeric"
+                    >
+                    <div id="search-icon" data-lucide="search" class="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 w-6 h-6"></div>
+                </div>
+            </div>
+
+            <div id="resultCard" class="bg-indigo-50 rounded-2xl p-6 text-center border border-indigo-100 hidden transform transition-all duration-300 scale-95 opacity-0">
+                <span id="animalSymbol" class="text-indigo-600 font-bold text-xs uppercase tracking-widest block mb-1"></span>
+                <div id="fullName" class="text-5xl font-black text-indigo-900 mb-2"></div>
+                <div id="animalDescription" class="text-lg font-semibold text-indigo-700 mb-4"></div>
+                <div class="flex justify-center gap-2 text-slate-500 font-medium text-sm">
+                    <span id="ganLabel" class="bg-white px-3 py-1 rounded-full shadow-sm"></span>
+                    <span id="jiLabel" class="bg-white px-3 py-1 rounded-full shadow-sm"></span>
+                </div>
+            </div>
+            
+            <div id="emptyMessage" class="bg-slate-50 rounded-2xl p-6 text-center border border-dashed border-slate-200 text-slate-400">
+                연도를 입력해 주세요
+            </div>
+
+            <div class="mt-8 flex items-start gap-3 bg-amber-50 p-4 rounded-xl border border-amber-100">
+                <div id="info-icon" data-lucide="info" class="text-amber-600 flex-shrink-0 mt-0.5 w-5 h-5"></div>
+                <div class="text-xs text-amber-800 leading-relaxed text-left">
+                    <p class="font-bold mb-1 underline text-sm">사용 안내</p>
+                    이 계산기는 서기 연도를 기준으로 한 **단순 세차 계산법**을 사용합니다. 
+                    전통 명리학에서는 **입춘**을 기준으로 간지가 결정됩니다.
+                </div>
+            </div>
+
+            <button 
+                id="resetBtn"
+                class="w-full mt-6 flex items-center justify-center gap-2 py-3 text-slate-500 hover:text-indigo-600 active:scale-95 transition-all font-medium"
+            >
+                <div id="refresh-icon" data-lucide="refresh-cw" class="w-5 h-5"></div>
+                올해 연도로 초기화
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const ganNames = ["갑", "을", "병", "정", "무", "기", "경", "신", "임", "계"];
+        const ganColors = {
+            "갑": "푸른", "을": "푸른", "병": "붉은", "정": "붉은", "무": "황색", 
+            "기": "황색", "경": "하얀", "신": "하얀", "임": "검은", "계": "검은"
+        };
+
+        const jiNames = ["자", "축", "인", "묘", "진", "사", "오", "미", "신", "유", "술", "해"];
+        const jiAnimals = {
+            "자": "쥐", "축": "소", "인": "호랑이", "묘": "토끼", "진": "용", "사": "뱀", 
+            "오": "말", "미": "양", "신": "원숭이", "유": "닭", "술": "개", "해": "돼지"
+        };
+
+        const yearInput = document.getElementById('yearInput');
+        const resultCard = document.getElementById('resultCard');
+        const emptyMessage = document.getElementById('emptyMessage');
+        const fullNameEl = document.getElementById('fullName');
+        const animalDescriptionEl = document.getElementById('animalDescription');
+        const ganLabelEl = document.getElementById('ganLabel');
+        const jiLabelEl = document.getElementById('jiLabel');
+        const animalSymbolEl = document.getElementById('animalSymbol');
+        const resetBtn = document.getElementById('resetBtn');
+
+        function calculateGanji(year) {
+            if (year === '' || isNaN(year)) return null;
+            const offset = parseInt(year) - 3;
+            const ganIdx = ((((offset % 10) + 10) % 10) + 9) % 10;
+            const jiIdx = ((((offset % 12) + 12) % 12) + 11) % 12;
+            const gan = ganNames[ganIdx];
+            const ji = jiNames[jiIdx];
+            return {
+                gan: gan, ji: ji, fullName: gan + ji + "년",
+                description: `${ganColors[gan]} ${jiAnimals[ji]}의 해`
+            };
+        }
+
+        function updateUI() {
+            const val = yearInput.value;
+            const res = calculateGanji(val);
+            if (res) {
+                resultCard.classList.remove('hidden');
+                setTimeout(() => { resultCard.classList.remove('scale-95', 'opacity-0'); }, 10);
+                emptyMessage.classList.add('hidden');
+                fullNameEl.textContent = res.fullName;
+                animalDescriptionEl.textContent = res.description;
+                ganLabelEl.textContent = "천간: " + res.gan;
+                jiLabelEl.textContent = "지지: " + res.ji;
+                animalSymbolEl.textContent = "올해의 상징";
+            } else {
+                resultCard.classList.add('hidden', 'scale-95', 'opacity-0');
+                emptyMessage.classList.remove('hidden');
+            }
+        }
+
+        yearInput.addEventListener('input', updateUI);
+        resetBtn.addEventListener('click', () => {
+            yearInput.value = new Date().getFullYear();
+            updateUI();
+        });
+
+        
+        window.onload = () => {
+            yearInput.value = new Date().getFullYear();
+            updateUI();
+
+            
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        };
+    </script>
+</body>
+</html>
